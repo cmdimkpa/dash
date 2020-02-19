@@ -19,17 +19,42 @@ def responsify(status,message,data={}):
     except:
         return Response(str(a_dict), status=code, mimetype='application/json')
 
+def get_chart(type, title, x_labels, chart_data):
+    type = type.lower()
+    if type == "bar":
+        chart = pygal.Bar()
+    elif type == "pie":
+        chart = pygal.Pie()
+    else:
+        chart = pygal.Line()
+    chart.title = title
+    chart.x_labels = x_labels
+    for series in chart_data:
+        if type == "pie":
+            chart.add(series, chart_data[series][0])
+        else:
+            chart.add(series, chart_data[series])
+    return chart.render_data_uri()
+
 def isNumeric(x):
     try:
         return float(x)
     except:
         return False
 
+def JSONArray2HTMLtable(array):
+    headers = array[-1].keys()
+    inner_table = []
+    for element in array:
+        row = "<tr>%s</tr>" % "".join(["<td>%s</td>" % element[header] for header in headers])
+        inner_table.append(row)
+    return "<table>" + "<tr>%s</tr>" % "".join(["<th>%s</th>" % header for header in headers]) + "".join(inner_table) + "</table>"
+
 def normalize(x):
     if isNumeric(x):
         return float(x)
     else:
-        return x
+        return str(x)
 
 def localSearch(array, params, mode="AND"):
     try:
@@ -86,11 +111,12 @@ def filter():
     if data:
         if unit == "settlements" and title == "Monthly Payment Analysis" and table == "FX TRANSACTIONS":
             try:
-                params = {"VALUE":inline_tx("VALUE")}
+                params, mode = {"FX":inline_tx("FX")}, "AND"
             except:
-                params = {}
+                params, mode = {}, "OR"
         try:
-            code, msg, data = 200, "OK", localSearch(data[0]["dashboard_data"][table], params, "OR")
+            results = localSearch(data[0]["dashboard_data"][table], params, mode)
+            code, msg, data = 200, "OK", {"chart":get_chart(get_var("chartType"), table, inline_tx("FX"), {param:[x[param] for x in results] for param in ["COUNT", "VALUE"]}), "table":JSONArray2HTMLtable(results)}
         except:
             code, msg, data = 400, "Error", {}
     else:

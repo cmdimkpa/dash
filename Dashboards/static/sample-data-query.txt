@@ -1,0 +1,1 @@
+http://localhost:5000/data-filter?title=Monthly%20Payment%20Analysis&unit=settlements&table=FX%20TRANSACTIONS&FX=EURO,DOLLAR,POUNDS&chartType=pie
